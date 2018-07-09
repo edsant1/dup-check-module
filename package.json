@@ -1,0 +1,19 @@
+{
+  "name": "duplicate-check",
+  "version": "1.0.0",
+  "description": "A node middleware to prevent duplicate posts from same user.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test/index.js"
+  },
+  "keywords": [
+    "duplicate-check",
+    "dup-check",
+    "prevent-duplicate"
+  ],
+  "author": "Edwin Santizo",
+  "license": "ISC",
+  "dependencies": {
+    "md5": "^2.2.1"
+  }
+}
