@@ -15,5 +15,8 @@
   "license": "ISC",
   "dependencies": {
     "md5": "^2.2.1"
+  },
+  "devDependencies": {
+    "redis": "^2.8.0"
   }
 }
