@@ -4,7 +4,7 @@
   "description": "A node middleware to prevent duplicate posts from same user.",
   "main": "index.js",
   "scripts": {
-    "test": "node test/index.js"
+    "test": "mocha"
   },
   "keywords": [
     "duplicate-check",
@@ -17,6 +17,7 @@
     "md5": "^2.2.1"
   },
   "devDependencies": {
+    "mocha": "^5.2.0",
     "redis": "^2.8.0"
   }
 }
