@@ -21,7 +21,6 @@ describe( 'Options assertion', function(){
     it( 'Should return an error if options is not an object', function(){
         assert.throws( function() {
             new DuplicateCheck( redisClient, 748392 );
-            // return obj === Object(obj);
         } );
     } );
 
@@ -39,31 +38,30 @@ describe( 'Options assertion', function(){
 
     it( 'Should return an error if redisKey option is not an array', function(){
         assert.throws( function() {
-            new DuplicateCheck( redisClient, { redisKey: '' } );
-            // return Array.isArray(obj.redisKey);
+            new DuplicateCheck( redisClient, { redisKeys: 'string' } );
         } );
     } );
 } );
 
 describe( 'Construction using default options', function(){
-    var dupCheck = new DuplicateCheck( redisClient, {} );
+    var dupCheck = new DuplicateCheck( redisClient );
 
     it( 'Should return an instance of Duplicate Check', function(){
         assert( dupCheck instanceof DuplicateCheck );
     } );
 
-    it( 'the DuplicateCheck instance should have a redis client', function(){
-        assert( dupCheck.redisClient instanceof redis.createClient() );
+    xit( 'the DuplicateCheck instance should have a redis client', function(){
+        assert( dupCheck.redisClient instanceof redis.createClient );
     } );
 
     it( 'The DuplicateCheck instance should use default options', function(){
-        assert.equal( dupCheck.ttl, 60 );
+        assert.equal( dupCheck.ttl, 30 );
         assert.equal( dupCheck.prefix, '' );
-        assert( Array.isArray( dupCheck.redisKey ) );
-        assert.equal( dupCheck.redisKey.length, 3 );
-        assert.equal( dupCheck.redisKey[ 0 ], 'method' );
-        assert.equal( dupCheck.redisKey[ 1 ], 'path' );
-        assert.equal( dupCheck.redisKey[ 2 ], 'ip' );
+        assert( Array.isArray( dupCheck.redisKeys ) );
+        assert.equal( dupCheck.redisKeys.length, 3 );
+        assert.equal( dupCheck.redisKeys[ 0 ], 'method' );
+        assert.equal( dupCheck.redisKeys[ 1 ], 'url' );
+        assert.equal( dupCheck.redisKeys[ 2 ], 'ip' );
     } );
 } );
 
@@ -71,45 +69,38 @@ describe( 'Use user passed in options as global options', function(){
     var dupCheck = new DuplicateCheck( redisClient, {
         ttl: 10,
         prefix: 'test-',
-        redisKey: [ 'path', 'method' ]
+        redisKeys: [ 'path', 'method' ]
     } );
 
     it( 'The instance should use global options', function(){
         assert.equal( dupCheck.ttl, 10 );
         assert.equal( dupCheck.prefix, 'test-' );
-        assert( Array.isArray( dupCheck.redisKey ) );
-        assert.equal( dupCheck.redisKey.length, 2 );
-        assert.equal( dupCheck.redisKey[ 0 ], 'path' );
-        assert.equal( dupCheck.redisKey[ 1 ], 'method' );
+        assert( Array.isArray( dupCheck.redisKeys ) );
+        assert.equal( dupCheck.redisKeys.length, 2 );
+        assert.equal( dupCheck.redisKeys[ 0 ], 'path' );
+        assert.equal( dupCheck.redisKeys[ 1 ], 'method' );
     } );
 } );
 
 describe( 'Check/Set redis database flag', function(){
     var dupCheck = new DuplicateCheck( redisClient, {} );
     it( 'Should set flag in db', function(){
-        dupCheck.setFlag().then( function( previous ){
-            assert.equal( previous, false );
+        dupCheck.stopOtherRequests( "test", function( previous ){
+            dupCheck.checkHash( "test", function( err, res ){
+                assert.equal( res, "true" );
+            } );
         } );
     } );
 } );
-
-// describe( 'Wait function', function(){
-//     var dupCheck = new DuplicateCheck( redisClient, {} );
-//     it( 'Should set flag in db', function(){
-//         dupCheck.setFlag().then( function( previous ){
-//             assert.equal( previous, false );
-//         } );
-//     } );
-// } );
 
 describe( 'Create, check, and set hash function', function(){
     var dupCheck = new DuplicateCheck( redisClient, { ttl: 10, prefix: 'test-' } );
     var redisKey = 'POST /tests'
     var hash;
     
-    it( 'The instance should have a buildHash function', function(){
-        assert( 'buildHash' in dupCheck );
-        assert( ( typeof dupCheck.buildHash ) === 'function' );
+    it( 'The instance should have a createHash function', function(){
+        assert( 'createHash' in dupCheck );
+        assert( ( typeof dupCheck.createHash ) === 'function' );
     } );
 
     it( 'The instance should have a checkHash function', function(){
@@ -123,30 +114,27 @@ describe( 'Create, check, and set hash function', function(){
     } );
     
     it( 'Should create an md5 hash', function(){
-        hash = dupCheck.buildHash( { id: '31jfds-fdjsk23' } );
+        hash = dupCheck.createHash( { body: '31jfds-fdjsk23' } );
         assert( ( typeof hash ) === 'string' );
     } );
 
     it( 'Should check redis if hash exists and return false', function(){
-        dupCheck.checkHash( redisKey, hash ).then( function( res ){
-            assert.equal( res, false );
-        } );
+        dupCheck.checkHash( hash, function( err, res ){
+            assert.equal( res, null );
+        } )
     } );
 
-    it( 'Should set hash in redis', function(){
-        dupCheck.setHash( redisKey, hash ).then( function(){
-            return redisClient.get( redisKey );
-        } ).then( function( res ){
-            assert.equal( res, hash );
-            return redisClient.ttl()
-        } ).then( function( time ){
-            assert( time < dupCheck.ttl );
+    it( 'should set hash in redis', function(){
+        dupCheck.setHash( redisKey, 10, function(){
+            dupCheck.checkHash( redisKey, function( err, res){
+                assert.equal( res, 'true' );
+            } );
         } );
     } );
 
     it( 'Should check redis if hash exists and return true', function(){
-        dupCheck.checkHash( redisKey, hash ).then( function( res ){
-            assert.equal( res, true );
+        dupCheck.checkHash( redisKey, function( err, res ){
+            assert.equal( res, 'true' );
         } );
     } );
 } );
@@ -164,6 +152,11 @@ describe( 'createMiddleware', function(){
     
     it( 'Should return a function', function(){
         assert( ( typeof dupCheck.createMiddleware() ) === 'function' );
+        
+    } );
+
+    after('close all redis connections', function(){
+        redisClient.quit();
     } );
 } );
 

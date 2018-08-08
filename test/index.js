@@ -3,8 +3,8 @@
  * mocha to test.
  * find out why it hangs. most likely cause done not being called.
  */
-describe( "unit tests", function(){
-  it( "should run all unit tests", function(){
+describe( "Unit Tests", function(){
+  describe( "should run all unit tests", function(){
     require( "./unit/duplicate-check" );
   } );
-} )
+} );
